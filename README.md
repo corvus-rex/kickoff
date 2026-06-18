@@ -10,7 +10,7 @@ Sistem manajemen tim sepak bola berbasis REST API. Dibangun dengan Go, Gin, Post
 
 - Go 1.25+
 - PostgreSQL 17+
-- Docker & Docker Compose (opsional)
+- Docker & Docker Compose
 
 ```bash
 # Clone repositori
