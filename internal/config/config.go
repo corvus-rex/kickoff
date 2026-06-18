@@ -26,6 +26,7 @@ type Config struct {
 	JWTSecret        string
 	JWTExpiryMinutes int
 	SeedUsers        bool
+	SeedDomain       bool
 }
 
 func Load() *Config {
@@ -50,6 +51,7 @@ func Load() *Config {
 		JWTSecret:        getEnv("JWT_SECRET", DefaultJWTSecret),
 		JWTExpiryMinutes: getEnvAsInt("JWT_EXPIRY_MINUTES", 60),
 		SeedUsers:        getEnvAsBool("SEED_USERS", seedDefault),
+		SeedDomain:       getEnvAsBool("SEED_DOMAIN", seedDefault),
 	}
 }
 

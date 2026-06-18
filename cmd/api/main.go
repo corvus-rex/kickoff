@@ -17,6 +17,7 @@ import (
 	"kickoff/internal/config"
 	"kickoff/internal/database"
 	"kickoff/internal/player"
+	"kickoff/internal/seed"
 	"kickoff/internal/team"
 )
 
@@ -45,6 +46,12 @@ func main() {
 	if cfg.SeedUsers {
 		if err := auth.Seed(db); err != nil {
 			log.Fatalf("user seeding failed: %v", err)
+		}
+	}
+
+	if cfg.SeedDomain {
+		if err := seed.Seed(db); err != nil {
+			log.Fatalf("domain seeding failed: %v", err)
 		}
 	}
 
