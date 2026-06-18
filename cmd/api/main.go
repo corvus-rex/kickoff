@@ -16,6 +16,7 @@ import (
 	"kickoff/internal/auth"
 	"kickoff/internal/config"
 	"kickoff/internal/database"
+	"kickoff/internal/team"
 )
 
 func main() {
@@ -34,7 +35,7 @@ func main() {
 		log.Fatalf("database connection failed: %v", err)
 	}
 
-	database.RegisterModel(&auth.User{})
+	database.RegisterModel(&auth.User{}, &team.Team{})
 
 	if err := database.RunMigrations(db); err != nil {
 		log.Fatalf("database migration failed: %v", err)
@@ -68,6 +69,7 @@ func setupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 
 	router.GET("/health", healthCheckHandler)
 	auth.RegisterRoutes(router, db, cfg.JWTSecret, cfg.JWTExpiryMinutes)
+	team.RegisterRoutes(router, db, cfg.JWTSecret)
 
 	return router
 }

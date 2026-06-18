@@ -8,8 +8,8 @@ import (
 
 var registeredModels []interface{}
 
-func RegisterModel(model interface{}) {
-	registeredModels = append(registeredModels, model)
+func RegisterModel(models ...interface{}) {
+	registeredModels = append(registeredModels, models...)
 }
 
 func RunMigrations(db *gorm.DB) error {
