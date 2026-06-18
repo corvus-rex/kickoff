@@ -42,7 +42,7 @@ func (s *Service) GetReport(matchID uint) (*MatchReport, error) {
 		Joins("JOIN teams at ON at.id = matches.away_team_id").
 		Where("matches.id = ? AND matches.deleted_at IS NULL", matchID).
 		Scan(&row).Error
-	if err != nil {
+	if err != nil || row.ID == 0 {
 		return nil, ErrMatchNotFound
 	}
 	if row.Status != "FINISHED" {
