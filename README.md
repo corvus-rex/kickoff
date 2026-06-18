@@ -1,0 +1,1 @@
+Backend REST API untuk sistem manajemen tim sepak bola berbasis Golang, Gin, PostgreSQL, dan JWT Authentication. Mendukung pengelolaan tim, pemain, jadwal pertandingan, hasil pertandingan, serta pelaporan statistik dengan mekanisme soft delete dan role-based access control.
