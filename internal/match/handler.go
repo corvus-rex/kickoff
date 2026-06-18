@@ -48,7 +48,7 @@ func (h *Handler) List(c *gin.Context) {
 }
 
 func (h *Handler) GetByID(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	id, err := strconv.ParseUint(c.Param("match_id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid match id"})
 		return
@@ -116,7 +116,7 @@ func (h *Handler) Create(c *gin.Context) {
 }
 
 func (h *Handler) Update(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	id, err := strconv.ParseUint(c.Param("match_id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid match id"})
 		return
@@ -176,7 +176,7 @@ func (h *Handler) Update(c *gin.Context) {
 }
 
 func (h *Handler) Delete(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	id, err := strconv.ParseUint(c.Param("match_id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid match id"})
 		return
@@ -204,6 +204,38 @@ func (h *Handler) Delete(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "match deleted successfully"})
 }
 
+func (h *Handler) FinishMatch(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("match_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid match id"})
+		return
+	}
+
+	roleVal, _ := c.Get(auth.ContextUserRoleKey)
+	role, ok := roleVal.(auth.Role)
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
+	m, err := h.service.Finish(uint(id), role)
+	if err != nil {
+		switch err {
+		case ErrNotFound:
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		case ErrForbidden:
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		case ErrAlreadyFinished:
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to finish match"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": m})
+}
+
 func RegisterRoutes(router *gin.Engine, db *gorm.DB, jwtSecret string) {
 	repo := NewRepository(db)
 	svc := NewService(repo, db)
@@ -216,9 +248,10 @@ func RegisterRoutes(router *gin.Engine, db *gorm.DB, jwtSecret string) {
 	matches.Use(authMW)
 	{
 		matches.GET("", h.List)
-		matches.GET("/:id", h.GetByID)
+		matches.GET("/:match_id", h.GetByID)
 		matches.POST("", adminOnly, h.Create)
-		matches.PUT("/:id", adminOnly, h.Update)
-		matches.DELETE("/:id", adminOnly, h.Delete)
+		matches.PUT("/:match_id", adminOnly, h.Update)
+		matches.PUT("/:match_id/finish", adminOnly, h.FinishMatch)
+		matches.DELETE("/:match_id", adminOnly, h.Delete)
 	}
 }

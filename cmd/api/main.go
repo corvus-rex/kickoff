@@ -16,6 +16,7 @@ import (
 	"kickoff/internal/auth"
 	"kickoff/internal/config"
 	"kickoff/internal/database"
+	"kickoff/internal/goal"
 	"kickoff/internal/match"
 	"kickoff/internal/player"
 	"kickoff/internal/seed"
@@ -38,7 +39,7 @@ func main() {
 		log.Fatalf("database connection failed: %v", err)
 	}
 
-	database.RegisterModel(&auth.User{}, &team.Team{}, &player.Player{}, &match.Match{})
+	database.RegisterModel(&auth.User{}, &team.Team{}, &player.Player{}, &match.Match{}, &goal.Goal{})
 
 	if err := database.RunMigrations(db); err != nil {
 		log.Fatalf("database migration failed: %v", err)
@@ -81,6 +82,7 @@ func setupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	team.RegisterRoutes(router, db, cfg.JWTSecret)
 	player.RegisterRoutes(router, db, cfg.JWTSecret)
 	match.RegisterRoutes(router, db, cfg.JWTSecret)
+	goal.RegisterRoutes(router, db, cfg.JWTSecret)
 
 	return router
 }

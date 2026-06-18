@@ -349,3 +349,105 @@ curl -s -X DELETE http://localhost:8080/api/matches/4 \
 curl -s http://localhost:8080/api/matches/4 \
   -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
 ```
+
+---
+
+# Match Result & Goals (Milestone 7)
+
+Seeded match IDs: Mavericks vs Dragon = 1, Giants vs Mavericks = 2, Dragon vs Giants = 3.
+Seeded players in match 1: Player A (ID 1, Team 1/Mavericks), Player B (ID 2, Team 1), Player E (ID 5, Team 2/Dragon).
+
+## Check seeded goals
+
+```bash
+# List goals for match 1 (already finished with 3 seeded goals)
+curl -s http://localhost:8080/api/matches/1/goals \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+
+# Verify match 1 is now FINISHED
+curl -s http://localhost:8080/api/matches/1 \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+```
+
+## Finish a match (ADMIN only)
+
+```bash
+# Finish match 2 (currently SCHEDULED)
+curl -s -X PUT http://localhost:8080/api/matches/2/finish \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+
+# Try finishing it again — should return 400 (already finished)
+curl -s -X PUT http://localhost:8080/api/matches/2/finish \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+```
+
+## Record a goal (ADMIN only)
+
+Player F (ID 6) is on Team 2 (Dragon). Match 2 is Giants (3) vs Mavericks (1).
+
+```bash
+# Record a goal for Player F (ID 6) in match 2 — should fail (wrong team)
+curl -s -X POST http://localhost:8080/api/matches/2/goals \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -d '{"player_id":6,"goal_minute":15}' | jq .
+
+# Record a goal for Player A (ID 1, Mavericks) in match 2 — should succeed
+curl -s -X POST http://localhost:8080/api/matches/2/goals \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -d '{"player_id":1,"goal_minute":33}' | jq .
+
+# Record a goal for Player I (ID 9, Giants) in match 2 — should succeed
+curl -s -X POST http://localhost:8080/api/matches/2/goals \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -d '{"player_id":9,"goal_minute":78}' | jq .
+```
+
+## List goals for match 2
+
+```bash
+curl -s http://localhost:8080/api/matches/2/goals \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+```
+
+## Validation — nonexistent player
+
+```bash
+# Player 999 doesn't exist
+curl -s -X POST http://localhost:8080/api/matches/2/goals \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -d '{"player_id":999,"goal_minute":15}' | jq .
+```
+
+## Validation — invalid minute
+
+```bash
+curl -s -X POST http://localhost:8080/api/matches/2/goals \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -d '{"player_id":1,"goal_minute":0}' | jq .
+```
+
+## Authorization — MANAGER cannot record goals
+
+```bash
+curl -s -X POST http://localhost:8080/api/matches/1/goals \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $MANAGER_TOKEN" \
+  -d '{"player_id":1,"goal_minute":10}' | jq .
+```
+
+## Delete a goal (ADMIN only)
+
+```bash
+# Delete goal 4 (the first goal you just added to match 2)
+curl -s -X DELETE http://localhost:8080/api/matches/2/goals/4 \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+
+# Verify — only remaining goals for match 2
+curl -s http://localhost:8080/api/matches/2/goals \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+```

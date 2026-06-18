@@ -15,6 +15,7 @@ var (
 	ErrSameTeam         = errors.New("home team and away team must be different")
 	ErrTeamNotFound     = errors.New("one or both teams not found")
 	ErrInvalidStatus    = errors.New("invalid match status, must be SCHEDULED or FINISHED")
+	ErrAlreadyFinished  = errors.New("match is already finished")
 	ErrInvalidDate      = errors.New("invalid match date")
 	ErrInvalidTime      = errors.New("match time is required (HH:MM)")
 	ErrDateRequired     = errors.New("match date is required")
@@ -108,6 +109,30 @@ func (s *Service) Delete(id uint, role auth.Role) error {
 		return err
 	}
 	return s.repo.Delete(id)
+}
+
+func (s *Service) Finish(id uint, role auth.Role) (*Match, error) {
+	if role != auth.RoleAdmin {
+		return nil, ErrForbidden
+	}
+
+	m, err := s.repo.FindByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	if m.Status == StatusFinished {
+		return nil, ErrAlreadyFinished
+	}
+
+	m.Status = StatusFinished
+	if err := s.repo.Update(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (s *Service) validate(m *Match) error {

@@ -6,6 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"kickoff/internal/goal"
 	"kickoff/internal/match"
 	"kickoff/internal/player"
 	"kickoff/internal/team"
@@ -20,7 +21,7 @@ func Seed(db *gorm.DB) error {
 }
 
 func clearDomain(db *gorm.DB) {
-	db.Exec("TRUNCATE TABLE players, matches, teams RESTART IDENTITY CASCADE")
+	db.Exec("TRUNCATE TABLE goals, players, matches, teams RESTART IDENTITY CASCADE")
 	log.Println("cleared existing domain data and reset sequences")
 }
 
@@ -135,5 +136,23 @@ func seedMatches(db *gorm.DB) error {
 		}
 		log.Printf("  seeded match #%d: team %d vs team %d", matches[i].ID, matches[i].HomeTeamID, matches[i].AwayTeamID)
 	}
+
+	matches[0].Status = match.StatusFinished
+	if err := db.Save(&matches[0]).Error; err != nil {
+		return err
+	}
+
+	goals := []goal.Goal{
+		{MatchID: matches[0].ID, PlayerID: 1, GoalMinute: 23},
+		{MatchID: matches[0].ID, PlayerID: 2, GoalMinute: 45},
+		{MatchID: matches[0].ID, PlayerID: 5, GoalMinute: 67},
+	}
+	for i := range goals {
+		if err := db.Create(&goals[i]).Error; err != nil {
+			return err
+		}
+	}
+	log.Printf("  seeded %d goals for match #%d (finished)", len(goals), matches[0].ID)
+
 	return nil
 }
