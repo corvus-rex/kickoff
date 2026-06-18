@@ -4,6 +4,24 @@ Sistem manajemen tim sepak bola berbasis REST API. Dibangun dengan Go, Gin, Post
 
 ---
 
+## Setup Lokal
+
+### Prasyarat
+
+- Go 1.25+
+- PostgreSQL 17+
+- Docker & Docker Compose (opsional)
+
+```bash
+# Clone repositori
+git clone https://github.com/corvus-rex/kickoff.git
+cd kickoff
+
+# Jalankan dengan Docker Compose
+docker compose up --build
+```
+---
+
 ## Arsitektur
 
 ### Komponen Utama
@@ -22,6 +40,7 @@ Sistem manajemen tim sepak bola berbasis REST API. Dibangun dengan Go, Gin, Post
 Layered architecture (Handler -> Service -> Repository) dengan dependency injection melalui constructor
 
 ---
+
 
 ## Struktur Folder
 
@@ -312,22 +331,7 @@ Authorization: Bearer <token>
 
 ---
 
-## Setup Lokal
-
-### Prasyarat
-
-- Go 1.25+
-- PostgreSQL 17+
-- Docker & Docker Compose (opsional)
-
-```bash
-# Clone repositori
-git clone https://github.com/corvus-rex/kickoff.git kickoff
-cd kickoff
-
-# Jalankan dengan Docker Compose
-docker compose up --build
-```
+## Development
 
 ### Seed Data
 
