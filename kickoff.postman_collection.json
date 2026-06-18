@@ -1,0 +1,864 @@
+{
+  "info": {
+    "name": "Kickoff API",
+    "description": "API manajemen tim sepak bola — Go/Gin/GORM + JWT Auth\n\n## Setup\n1. Jalankan aplikasi (lokal atau Docker)\n2. Kirim request **Auth > Login** menggunakan kredensial seed\n3. Token JWT otomatis tersimpan ke variable `jwtToken`\n4. Gunakan request di folder lain (semua sudah menyertakan header Authorization)\n\n## Seed Data Default\n| Role | Email | Password |\n|---|---|---|\n| ADMIN | admin@xyz-football.local | ChangeMe123! |\n| MANAGER | manager@xyz-football.local | ChangeMe123! |\n| USER | user@xyz-football.local | ChangeMe123! |\n\n**Team IDs:** Jakarta Mavericks=1, Bali Dragon=2, Bandung Giants=3\n**Player IDs:** 1-12 (4 per tim)\n**Match ID:** 1 (FINISHED), 2-3 (SCHEDULED)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "kickoff"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Cek status server (public, no auth required)"
+          },
+          "response": [
+            {
+              "name": "OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"status\": \"ok\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Endpoint publik untuk mengecek status server"
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login — Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@xyz-football.local\",\n  \"password\": \"ChangeMe123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login sebagai ADMIN. Token JWT otomatis tersimpan ke variable `jwtToken`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set(\"jwtToken\", jsonData.token);",
+                  "    console.log(\"Token tersimpan: \" + jsonData.token.substring(0, 50) + \"...\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Login Berhasil (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": {\n    \"id\": 1,\n    \"name\": \"Default Admin\",\n    \"email\": \"admin@xyz-football.local\",\n    \"role\": \"ADMIN\"\n  }\n}"
+            },
+            {
+              "name": "Login Gagal (401)",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"error\": \"invalid email or password\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login — Manager",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"manager@xyz-football.local\",\n  \"password\": \"ChangeMe123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login sebagai MANAGER (mengelola Tim ID=1). Token JWT otomatis tersimpan."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set(\"jwtToken\", jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login — User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@xyz-football.local\",\n  \"password\": \"ChangeMe123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login sebagai USER (read-only, tidak bisa manage apapun)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set(\"jwtToken\", jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Autentikasi — dapatkan JWT token untuk mengakses API"
+    },
+    {
+      "name": "Teams",
+      "item": [
+        {
+          "name": "List Teams",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/teams",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams"]
+            },
+            "description": "Mendapatkan daftar semua tim. Semua role terautentikasi."
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": 1,\n      \"name\": \"Jakarta Mavericks\",\n      \"logo_url\": \"\",\n      \"founded_year\": 2015,\n      \"headquarters_address\": \"\",\n      \"headquarters_city\": \"Jakarta\",\n      \"manager_user_id\": 2,\n      \"created_at\": \"2026-06-19T00:00:00Z\",\n      \"updated_at\": \"2026-06-19T00:00:00Z\"\n    },\n    {\n      \"id\": 2,\n      \"name\": \"Bali Dragon\",\n      \"logo_url\": \"\",\n      \"founded_year\": 2014,\n      \"headquarters_address\": \"\",\n      \"headquarters_city\": \"Bali\",\n      \"manager_user_id\": null,\n      \"created_at\": \"2026-06-19T00:00:00Z\",\n      \"updated_at\": \"2026-06-19T00:00:00Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Team",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/{{teamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "{{teamId}}"]
+            },
+            "description": "Detail tim berdasarkan ID. Semua role terautentikasi."
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": 1,\n    \"name\": \"Jakarta Mavericks\",\n    \"logo_url\": \"\",\n    \"founded_year\": 2015,\n    \"headquarters_address\": \"\",\n    \"headquarters_city\": \"Jakarta\",\n    \"manager_user_id\": 2,\n    \"created_at\": \"2026-06-19T00:00:00Z\",\n    \"updated_at\": \"2026-06-19T00:00:00Z\"\n  }\n}"
+            },
+            {
+              "name": "Not Found (404)",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"error\": \"team not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Team",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Surabaya Eagles\",\n  \"logo_url\": \"https://example.com/logo.png\",\n  \"founded_year\": 2020,\n  \"headquarters_address\": \"Jl. Pemuda No. 1\",\n  \"headquarters_city\": \"Surabaya\",\n  \"manager_user_id\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/teams",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams"]
+            },
+            "description": "Membuat tim baru. **Hanya ADMIN.**"
+          },
+          "response": [
+            {
+              "name": "Created (201)",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": 4,\n    \"name\": \"Surabaya Eagles\",\n    \"logo_url\": \"https://example.com/logo.png\",\n    \"founded_year\": 2020,\n    \"headquarters_address\": \"Jl. Pemuda No. 1\",\n    \"headquarters_city\": \"Surabaya\",\n    \"manager_user_id\": null,\n    \"created_at\": \"2026-06-19T01:00:00Z\",\n    \"updated_at\": \"2026-06-19T01:00:00Z\"\n  }\n}"
+            },
+            {
+              "name": "Forbidden (403)",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"error\": \"access denied\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Team",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Surabaya Eagles FC\",\n  \"founded_year\": 2020,\n  \"headquarters_city\": \"Surabaya\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/{{teamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "{{teamId}}"]
+            },
+            "description": "Update data tim. **ADMIN** (semua tim) atau **MANAGER** (tim yang dimanage).\n\nManager hanya dapat mengupdate tim dengan `manager_user_id` sesuai ID user-nya. Untuk MANAGER, gunakan `teamId=1`."
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": 4,\n    \"name\": \"Surabaya Eagles FC\",\n    \"logo_url\": \"\",\n    \"founded_year\": 2020,\n    \"headquarters_address\": \"\",\n    \"headquarters_city\": \"Surabaya\",\n    \"manager_user_id\": null,\n    \"created_at\": \"2026-06-19T01:00:00Z\",\n    \"updated_at\": \"2026-06-19T01:05:00Z\"\n  }\n}"
+            },
+            {
+              "name": "Forbidden (403)",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"error\": \"access denied\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Team",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/{{teamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "{{teamId}}"]
+            },
+            "description": "Hapus tim (soft delete). **Hanya ADMIN.**"
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"message\": \"team deleted successfully\"\n}"
+            },
+            {
+              "name": "Forbidden (403)",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"error\": \"access denied\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Manajemen tim — CRUD dengan otorisasi role"
+    },
+    {
+      "name": "Players",
+      "item": [
+        {
+          "name": "List Players by Team",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/{{teamId}}/players",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "{{teamId}}", "players"]
+            },
+            "description": "Daftar pemain dalam suatu tim. Semua role terautentikasi."
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": 1,\n      \"team_id\": 1,\n      \"name\": \"Player A\",\n      \"height_cm\": 178,\n      \"weight_kg\": 72,\n      \"position\": \"STRIKER\",\n      \"jersey_number\": 10,\n      \"created_at\": \"2026-06-19T00:00:00Z\",\n      \"updated_at\": \"2026-06-19T00:00:00Z\"\n    },\n    {\n      \"id\": 4,\n      \"team_id\": 1,\n      \"name\": \"Player D\",\n      \"height_cm\": 175,\n      \"weight_kg\": 70,\n      \"position\": \"MIDFIELDER\",\n      \"jersey_number\": 23,\n      \"created_at\": \"2026-06-19T00:00:00Z\",\n      \"updated_at\": \"2026-06-19T00:00:00Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Player",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ahmad Rizki\",\n  \"height_cm\": 180,\n  \"weight_kg\": 75,\n  \"position\": \"MIDFIELDER\",\n  \"jersey_number\": 17\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/{{teamId}}/players",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "{{teamId}}", "players"]
+            },
+            "description": "Tambah pemain ke tim. **ADMIN** (semua tim) atau **MANAGER** (tim yang dimanage, gunakan teamId=1).\n\n**Valid Position values:** `STRIKER`, `MIDFIELDER`, `DEFENDER`, `GOALKEEPER`, `FLEX`"
+          },
+          "response": [
+            {
+              "name": "Created (201)",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": 13,\n    \"team_id\": 1,\n    \"name\": \"Ahmad Rizki\",\n    \"height_cm\": 180,\n    \"weight_kg\": 75,\n    \"position\": \"MIDFIELDER\",\n    \"jersey_number\": 17,\n    \"created_at\": \"2026-06-19T01:10:00Z\",\n    \"updated_at\": \"2026-06-19T01:10:00Z\"\n  }\n}"
+            },
+            {
+              "name": "Jersey Taken (400)",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"error\": \"jersey number already taken in this team\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Player",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/players/{{playerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players", "{{playerId}}"]
+            },
+            "description": "Detail pemain berdasarkan ID. Semua role terautentikasi."
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": 1,\n    \"team_id\": 1,\n    \"name\": \"Player A\",\n    \"height_cm\": 178,\n    \"weight_kg\": 72,\n    \"position\": \"STRIKER\",\n    \"jersey_number\": 10,\n    \"created_at\": \"2026-06-19T00:00:00Z\",\n    \"updated_at\": \"2026-06-19T00:00:00Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Player",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Player A Updated\",\n  \"position\": \"FLEX\",\n  \"jersey_number\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/players/{{playerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players", "{{playerId}}"]
+            },
+            "description": "Update data pemain. **ADMIN** atau **MANAGER** (hanya pemain dalam tim yang dimanage)."
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": 1,\n    \"team_id\": 1,\n    \"name\": \"Player A Updated\",\n    \"height_cm\": 178,\n    \"weight_kg\": 72,\n    \"position\": \"FLEX\",\n    \"jersey_number\": 10,\n    \"created_at\": \"2026-06-19T00:00:00Z\",\n    \"updated_at\": \"2026-06-19T01:15:00Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Player",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/players/{{playerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players", "{{playerId}}"]
+            },
+            "description": "Hapus pemain (soft delete). **ADMIN** atau **MANAGER** (hanya pemain dalam tim yang dimanage)."
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"message\": \"player deleted successfully\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Manajemen pemain — CRUD per tim dengan validasi nomor punggung unik"
+    },
+    {
+      "name": "Matches",
+      "item": [
+        {
+          "name": "List Matches",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/matches",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "matches"]
+            },
+            "description": "Daftar semua pertandingan. Semua role terautentikasi."
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": 1,\n      \"match_date\": \"2026-06-19T00:00:00Z\",\n      \"match_time\": \"19:00\",\n      \"home_team_id\": 1,\n      \"away_team_id\": 2,\n      \"status\": \"FINISHED\",\n      \"created_at\": \"2026-06-19T00:00:00Z\",\n      \"updated_at\": \"2026-06-19T00:00:00Z\"\n    },\n    {\n      \"id\": 2,\n      \"match_date\": \"2026-06-26T00:00:00Z\",\n      \"match_time\": \"15:30\",\n      \"home_team_id\": 3,\n      \"away_team_id\": 1,\n      \"status\": \"SCHEDULED\",\n      \"created_at\": \"2026-06-19T00:00:00Z\",\n      \"updated_at\": \"2026-06-19T00:00:00Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Match",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/matches/{{matchId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "matches", "{{matchId}}"]
+            },
+            "description": "Detail pertandingan. Semua role terautentikasi."
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": 1,\n    \"match_date\": \"2026-06-19T00:00:00Z\",\n    \"match_time\": \"19:00\",\n    \"home_team_id\": 1,\n    \"away_team_id\": 2,\n    \"status\": \"FINISHED\",\n    \"created_at\": \"2026-06-19T00:00:00Z\",\n    \"updated_at\": \"2026-06-19T00:00:00Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Match",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"match_date\": \"2026-08-01\",\n  \"match_time\": \"19:30\",\n  \"home_team_id\": 1,\n  \"away_team_id\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/matches",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "matches"]
+            },
+            "description": "Membuat pertandingan baru. **Hanya ADMIN.**\n\n- `match_date` format: YYYY-MM-DD\n- `match_time` format: HH:MM\n- `home_team_id` dan `away_team_id` harus berbeda\n- Status otomatis `SCHEDULED` jika tidak disertakan"
+          },
+          "response": [
+            {
+              "name": "Created (201)",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": 4,\n    \"match_date\": \"2026-08-01T00:00:00Z\",\n    \"match_time\": \"19:30\",\n    \"home_team_id\": 1,\n    \"away_team_id\": 2,\n    \"status\": \"SCHEDULED\",\n    \"created_at\": \"2026-06-19T02:00:00Z\",\n    \"updated_at\": \"2026-06-19T02:00:00Z\"\n  }\n}"
+            },
+            {
+              "name": "Same Team (400)",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"error\": \"home and away teams must be different\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Match",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"match_date\": \"2026-08-15\",\n  \"match_time\": \"20:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/matches/{{matchId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "matches", "{{matchId}}"]
+            },
+            "description": "Update data pertandingan. **Hanya ADMIN.**"
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": 4,\n    \"match_date\": \"2026-08-15T00:00:00Z\",\n    \"match_time\": \"20:00\",\n    \"home_team_id\": 1,\n    \"away_team_id\": 2,\n    \"status\": \"SCHEDULED\",\n    \"created_at\": \"2026-06-19T02:00:00Z\",\n    \"updated_at\": \"2026-06-19T02:05:00Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Finish Match",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/matches/{{matchId}}/finish",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "matches", "{{matchId}}", "finish"]
+            },
+            "description": "Menyelesaikan pertandingan (ubah status ke FINISHED). **Hanya ADMIN.**\n\nMatch yang sudah FINISHED tidak bisa di-finish lagi."
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": 4,\n    \"status\": \"FINISHED\",\n    ...\n  }\n}"
+            },
+            {
+              "name": "Already Finished (400)",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"error\": \"match is already finished\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Match",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/matches/{{matchId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "matches", "{{matchId}}"]
+            },
+            "description": "Hapus pertandingan (soft delete). **Hanya ADMIN.**"
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"message\": \"match deleted successfully\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Manajemen pertandingan — CRUD + Finish, dengan validasi tim berbeda"
+    },
+    {
+      "name": "Goals",
+      "item": [
+        {
+          "name": "List Goals by Match",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/matches/{{matchId}}/goals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "matches", "{{matchId}}", "goals"]
+            },
+            "description": "Daftar gol dalam suatu pertandingan. Semua role terautentikasi."
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": 1,\n      \"match_id\": 1,\n      \"player_id\": 1,\n      \"goal_minute\": 23,\n      \"created_at\": \"2026-06-19T00:00:00Z\",\n      \"updated_at\": \"2026-06-19T00:00:00Z\"\n    },\n    {\n      \"id\": 2,\n      \"match_id\": 1,\n      \"player_id\": 2,\n      \"goal_minute\": 45,\n      \"created_at\": \"2026-06-19T00:00:00Z\",\n      \"updated_at\": \"2026-06-19T00:00:00Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Goal",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"player_id\": 1,\n  \"goal_minute\": 15\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/matches/{{matchId}}/goals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "matches", "{{matchId}}", "goals"]
+            },
+            "description": "Mencatat gol baru. **Hanya ADMIN.**\n\n- `player_id` harus pemain yang bertanding (home atau away team)\n- `goal_minute` harus >= 0"
+          },
+          "response": [
+            {
+              "name": "Created (201)",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": 5,\n    \"match_id\": 1,\n    \"player_id\": 1,\n    \"goal_minute\": 15,\n    \"created_at\": \"2026-06-19T02:10:00Z\",\n    \"updated_at\": \"2026-06-19T02:10:00Z\"\n  }\n}"
+            },
+            {
+              "name": "Player Not In Match (400)",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"error\": \"player does not belong to either team in this match\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Goal",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/matches/{{matchId}}/goals/{{goalId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "matches", "{{matchId}}", "goals", "{{goalId}}"]
+            },
+            "description": "Hapus gol (soft delete). **Hanya ADMIN.**"
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"message\": \"goal deleted successfully\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Manajemen gol — catat dan hapus gol dalam pertandingan"
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Get Match Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwtToken}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/matches/{{matchId}}/report",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "matches", "{{matchId}}", "report"]
+            },
+            "description": "Laporan pertandingan. Semua role terautentikasi.\n\nHanya untuk pertandingan dengan status **FINISHED** (gunakan matchId=1 untuk seed data).\n\n**Response fields:**\n- `home_score` / `away_score`: dihitung dari jumlah gol\n- `result`: `HOME_WIN`, `AWAY_WIN`, atau `DRAW`\n- `top_scorer`: pemain dengan gol terbanyak\n- `home_cumulative_wins` / `away_cumulative_wins`: total kemenangan tim di semua pertandingan FINISHED sebelumnya + pertandingan ini"
+          },
+          "response": [
+            {
+              "name": "OK (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"data\": {\n    \"match_id\": 1,\n    \"match_date\": \"2026-06-19T00:00:00Z\",\n    \"match_time\": \"19:00\",\n    \"home_team\": {\n      \"id\": 1,\n      \"name\": \"Jakarta Mavericks\"\n    },\n    \"away_team\": {\n      \"id\": 2,\n      \"name\": \"Bali Dragon\"\n    },\n    \"home_score\": 2,\n    \"away_score\": 1,\n    \"result\": \"HOME_WIN\",\n    \"top_scorer\": {\n      \"player_id\": 1,\n      \"player_name\": \"Player A\",\n      \"goals\": 2\n    },\n    \"home_cumulative_wins\": 3,\n    \"away_cumulative_wins\": 1\n  }\n}"
+            },
+            {
+              "name": "Not Finished (400)",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+              ],
+              "body": "{\n  \"error\": \"match has not been finished yet\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Laporan pertandingan — skor, top scorer, dan akumulasi kemenangan"
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "jwtToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teamId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "playerId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "matchId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "goalId",
+      "value": "1",
+      "type": "string"
+    }
+  ]
+}
