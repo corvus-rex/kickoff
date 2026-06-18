@@ -49,7 +49,7 @@ func (h *Handler) ListTeams(c *gin.Context) {
 }
 
 func (h *Handler) GetTeam(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	id, err := strconv.ParseUint(c.Param("team_id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid team id"})
 		return
@@ -107,7 +107,7 @@ func (h *Handler) CreateTeam(c *gin.Context) {
 }
 
 func (h *Handler) UpdateTeam(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	id, err := strconv.ParseUint(c.Param("team_id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid team id"})
 		return
@@ -165,7 +165,7 @@ func (h *Handler) UpdateTeam(c *gin.Context) {
 }
 
 func (h *Handler) DeleteTeam(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	id, err := strconv.ParseUint(c.Param("team_id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid team id"})
 		return
@@ -207,9 +207,9 @@ func RegisterRoutes(router *gin.Engine, db *gorm.DB, jwtSecret string) {
 	teams.Use(authMW)
 	{
 		teams.GET("", h.ListTeams)
-		teams.GET("/:id", h.GetTeam)
+		teams.GET("/:team_id", h.GetTeam)
 		teams.POST("", adminOnly, h.CreateTeam)
-		teams.PUT("/:id", managerOrAdmin, h.UpdateTeam)
-		teams.DELETE("/:id", adminOnly, h.DeleteTeam)
+		teams.PUT("/:team_id", managerOrAdmin, h.UpdateTeam)
+		teams.DELETE("/:team_id", adminOnly, h.DeleteTeam)
 	}
 }
