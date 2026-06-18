@@ -13,6 +13,7 @@ import (
 	"github.com/joho/godotenv"
 	"gorm.io/gorm"
 
+	"kickoff/internal/auth"
 	"kickoff/internal/config"
 	"kickoff/internal/database"
 )
@@ -24,16 +25,28 @@ func main() {
 
 	cfg := config.Load()
 
+	if cfg.Env != "development" && cfg.JWTSecret == config.DefaultJWTSecret {
+		log.Fatal("JWT_SECRET must be explicitly set outside development environment")
+	}
+
 	db, err := database.Connect(cfg)
 	if err != nil {
 		log.Fatalf("database connection failed: %v", err)
 	}
 
+	database.RegisterModel(&auth.User{})
+
 	if err := database.RunMigrations(db); err != nil {
 		log.Fatalf("database migration failed: %v", err)
 	}
 
-	router := setupRouter()
+	if cfg.SeedUsers {
+		if err := auth.Seed(db); err != nil {
+			log.Fatalf("user seeding failed: %v", err)
+		}
+	}
+
+	router := setupRouter(db, cfg)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
@@ -50,9 +63,12 @@ func main() {
 	gracefulShutdown(srv, db)
 }
 
-func setupRouter() *gin.Engine {
+func setupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	router := gin.Default()
+
 	router.GET("/health", healthCheckHandler)
+	auth.RegisterRoutes(router, db, cfg.JWTSecret, cfg.JWTExpiryMinutes)
+
 	return router
 }
 
