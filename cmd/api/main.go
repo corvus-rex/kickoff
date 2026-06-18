@@ -18,6 +18,7 @@ import (
 	"kickoff/internal/database"
 	"kickoff/internal/goal"
 	"kickoff/internal/match"
+	"kickoff/internal/report"
 	"kickoff/internal/player"
 	"kickoff/internal/seed"
 	"kickoff/internal/team"
@@ -83,6 +84,7 @@ func setupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	player.RegisterRoutes(router, db, cfg.JWTSecret)
 	match.RegisterRoutes(router, db, cfg.JWTSecret)
 	goal.RegisterRoutes(router, db, cfg.JWTSecret)
+	report.RegisterRoutes(router, db, cfg.JWTSecret)
 
 	return router
 }

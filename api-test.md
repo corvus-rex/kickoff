@@ -451,3 +451,46 @@ curl -s -X DELETE http://localhost:8080/api/matches/2/goals/4 \
 curl -s http://localhost:8080/api/matches/2/goals \
   -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
 ```
+
+---
+
+# Match Report (Milestone 8)
+
+Match 1 is seeded as FINISHED (Mavericks 2–1 Dragon). Match 2 was finished in the goal tests above.
+
+## Get report for a finished match
+
+```bash
+# Report for match 1 (seeded as finished)
+curl -s http://localhost:8080/api/matches/1/report \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+
+# Report for match 2 (finished above)
+curl -s http://localhost:8080/api/matches/2/report \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+```
+
+## Report for an unfinished match — should return 400
+
+```bash
+# Match 3 is still SCHEDULED
+curl -s http://localhost:8080/api/matches/3/report \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+```
+
+## Report for nonexistent match — should return 404
+
+```bash
+curl -s http://localhost:8080/api/matches/999/report \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+```
+
+## Any authenticated user can read reports
+
+```bash
+curl -s http://localhost:8080/api/matches/1/report \
+  -H "Authorization: Bearer $MANAGER_TOKEN" | jq .
+
+curl -s http://localhost:8080/api/matches/1/report \
+  -H "Authorization: Bearer $USER_TOKEN" | jq .
+```
