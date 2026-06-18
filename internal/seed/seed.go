@@ -18,9 +18,8 @@ func Seed(db *gorm.DB) error {
 }
 
 func clearDomain(db *gorm.DB) {
-	db.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&player.Player{})
-	db.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&team.Team{})
-	log.Println("cleared existing domain data")
+	db.Exec("TRUNCATE TABLE players, teams RESTART IDENTITY CASCADE")
+	log.Println("cleared existing domain data and reset sequences")
 }
 
 type teamSeed struct {
