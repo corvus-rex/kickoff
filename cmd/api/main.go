@@ -11,8 +11,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"gorm.io/gorm"
 
 	"kickoff/internal/config"
+	"kickoff/internal/database"
 )
 
 func main() {
@@ -21,6 +23,16 @@ func main() {
 	}
 
 	cfg := config.Load()
+
+	db, err := database.Connect(cfg)
+	if err != nil {
+		log.Fatalf("database connection failed: %v", err)
+	}
+
+	if err := database.RunMigrations(db); err != nil {
+		log.Fatalf("database migration failed: %v", err)
+	}
+
 	router := setupRouter()
 
 	srv := &http.Server{
@@ -35,7 +47,7 @@ func main() {
 		}
 	}()
 
-	gracefulShutdown(srv)
+	gracefulShutdown(srv, db)
 }
 
 func setupRouter() *gin.Engine {
@@ -50,9 +62,7 @@ func healthCheckHandler(c *gin.Context) {
 	})
 }
 
-// gracefulShutdown blocks until SIGINT/SIGTERM is received, then gives
-// in-flight requests up to 10s to finish before forcing shutdown.
-func gracefulShutdown(srv *http.Server) {
+func gracefulShutdown(srv *http.Server, db *gorm.DB) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
@@ -64,6 +74,10 @@ func gracefulShutdown(srv *http.Server) {
 
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("server forced to shutdown: %v", err)
+	}
+
+	if err := database.Close(db); err != nil {
+		log.Printf("error closing database connection: %v", err)
 	}
 
 	log.Println("server exited cleanly")
