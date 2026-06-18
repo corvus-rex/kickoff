@@ -262,3 +262,90 @@ curl -s http://localhost:8080/api/teams/1/players \
 curl -s http://localhost:8080/api/teams/2/players \
   -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
 ```
+
+---
+
+# Match Scheduling (Milestone 6)
+
+Seeded team IDs: Mavericks=1, Dragon=2, Giants=3.
+
+## Get seeded matches (any authenticated user)
+
+```bash
+# List all matches
+curl -s http://localhost:8080/api/matches \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+
+# Get match by ID
+curl -s http://localhost:8080/api/matches/1 \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+```
+
+## Create a match (ADMIN only)
+
+```bash
+curl -s -X POST http://localhost:8080/api/matches \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -d '{"match_date":"2026-07-15","match_time":"20:00","home_team_id":1,"away_team_id":3}' | jq .
+```
+
+## Validation — same team
+
+```bash
+# Should return 400
+curl -s -X POST http://localhost:8080/api/matches \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -d '{"match_date":"2026-07-15","match_time":"20:00","home_team_id":1,"away_team_id":1}' | jq .
+```
+
+## Validation — nonexistent team
+
+```bash
+# Should return 400
+curl -s -X POST http://localhost:8080/api/matches \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -d '{"match_date":"2026-07-15","match_time":"20:00","home_team_id":1,"away_team_id":999}' | jq .
+```
+
+## Update a match (ADMIN only)
+
+```bash
+# Change match time
+curl -s -X PUT http://localhost:8080/api/matches/1 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -d '{"match_date":"2026-06-20","match_time":"18:00"}' | jq .
+```
+
+## Authorization — MANAGER read only
+
+```bash
+# MANAGER reads matches — should return 200
+curl -s http://localhost:8080/api/matches \
+  -H "Authorization: Bearer $MANAGER_TOKEN" | jq .
+
+# MANAGER tries to create a match — should return 403
+curl -s -X POST http://localhost:8080/api/matches \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $MANAGER_TOKEN" \
+  -d '{"match_date":"2026-07-15","match_time":"20:00","home_team_id":1,"away_team_id":2}' | jq .
+
+# USER can also read — should return 200
+curl -s http://localhost:8080/api/matches \
+  -H "Authorization: Bearer $USER_TOKEN" | jq .
+```
+
+## Delete a match (ADMIN only)
+
+```bash
+# Delete match 4 (the one you just created)
+curl -s -X DELETE http://localhost:8080/api/matches/4 \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+
+# Verify deletion (soft delete)
+curl -s http://localhost:8080/api/matches/4 \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq .
+```

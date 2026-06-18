@@ -2,9 +2,11 @@ package seed
 
 import (
 	"log"
+	"time"
 
 	"gorm.io/gorm"
 
+	"kickoff/internal/match"
 	"kickoff/internal/player"
 	"kickoff/internal/team"
 )
@@ -18,7 +20,7 @@ func Seed(db *gorm.DB) error {
 }
 
 func clearDomain(db *gorm.DB) {
-	db.Exec("TRUNCATE TABLE players, teams RESTART IDENTITY CASCADE")
+	db.Exec("TRUNCATE TABLE players, matches, teams RESTART IDENTITY CASCADE")
 	log.Println("cleared existing domain data and reset sequences")
 }
 
@@ -110,6 +112,28 @@ func seedDomain(db *gorm.DB) error {
 		log.Printf("  seeded team '%s' (ID=%d) with %d players", t.Name, t.ID, len(ts.players))
 	}
 
+	if err := seedMatches(db); err != nil {
+		return err
+	}
+
 	log.Println("domain seeding complete")
+	return nil
+}
+
+func seedMatches(db *gorm.DB) error {
+	today := time.Now().Truncate(24 * time.Hour)
+
+	matches := []match.Match{
+		{MatchDate: today, MatchTime: "19:00", HomeTeamID: 1, AwayTeamID: 2, Status: match.StatusScheduled},
+		{MatchDate: today.AddDate(0, 0, 7), MatchTime: "15:30", HomeTeamID: 3, AwayTeamID: 1, Status: match.StatusScheduled},
+		{MatchDate: today.AddDate(0, 0, 7), MatchTime: "19:00", HomeTeamID: 2, AwayTeamID: 3, Status: match.StatusScheduled},
+	}
+
+	for i := range matches {
+		if err := db.Create(&matches[i]).Error; err != nil {
+			return err
+		}
+		log.Printf("  seeded match #%d: team %d vs team %d", matches[i].ID, matches[i].HomeTeamID, matches[i].AwayTeamID)
+	}
 	return nil
 }
