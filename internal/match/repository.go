@@ -1,6 +1,8 @@
 package match
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 )
 
@@ -15,6 +17,16 @@ func NewRepository(db *gorm.DB) *Repository {
 func (r *Repository) FindAll() ([]Match, error) {
 	var matches []Match
 	err := r.db.Find(&matches).Error
+	return matches, err
+}
+
+func (r *Repository) FindAllPaginated(cursorCreatedAt time.Time, cursorID uint, limit int) ([]Match, error) {
+	var matches []Match
+	query := r.db.Order("created_at ASC, id ASC").Limit(limit)
+	if !cursorCreatedAt.IsZero() {
+		query = query.Where("(created_at > ?) OR (created_at = ? AND id > ?)", cursorCreatedAt, cursorCreatedAt, cursorID)
+	}
+	err := query.Find(&matches).Error
 	return matches, err
 }
 

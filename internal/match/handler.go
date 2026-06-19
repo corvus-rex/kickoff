@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"kickoff/internal/auth"
+	"kickoff/internal/pagination"
 )
 
 type Handler struct {
@@ -36,7 +37,24 @@ type updateMatchRequest struct {
 }
 
 func (h *Handler) List(c *gin.Context) {
-	matches, err := h.service.List()
+	var req pagination.Request
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid pagination parameters"})
+		return
+	}
+
+	var cursorCreatedAt time.Time
+	var cursorID uint
+	if req.Cursor != "" {
+		var err error
+		cursorCreatedAt, cursorID, err = pagination.DecodeCompositeCursor(req.Cursor)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid cursor"})
+			return
+		}
+	}
+
+	matches, nextCursor, err := h.service.List(cursorCreatedAt, cursorID, req.GetLimit())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch matches"})
 		return
@@ -44,7 +62,12 @@ func (h *Handler) List(c *gin.Context) {
 	if matches == nil {
 		matches = []Match{}
 	}
-	c.JSON(http.StatusOK, gin.H{"data": matches})
+
+	resp := gin.H{"data": matches}
+	if nextCursor != "" {
+		resp["next_cursor"] = nextCursor
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) GetByID(c *gin.Context) {

@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"kickoff/internal/auth"
+	"kickoff/internal/pagination"
 )
 
 var (
@@ -30,8 +31,17 @@ func NewService(repo *Repository, db *gorm.DB) *Service {
 	return &Service{repo: repo, db: db}
 }
 
-func (s *Service) List() ([]Match, error) {
-	return s.repo.FindAll()
+func (s *Service) List(cursorCreatedAt time.Time, cursorID uint, limit int) ([]Match, string, error) {
+	matches, err := s.repo.FindAllPaginated(cursorCreatedAt, cursorID, limit)
+	if err != nil {
+		return nil, "", err
+	}
+	var nextCursor string
+	if len(matches) == limit {
+		last := matches[len(matches)-1]
+		nextCursor = pagination.EncodeCompositeCursor(last.CreatedAt, last.ID)
+	}
+	return matches, nextCursor, nil
 }
 
 func (s *Service) GetByID(id uint) (*Match, error) {
