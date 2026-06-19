@@ -261,6 +261,7 @@ Berikut adalah asumsi yang digunakan dalam pengembangan aplikasi:
 5. **Truncate + RESTART IDENTITY** - pada seeding development, semua tabel di-truncate dengan restart identity untuk memastikan ID deterministik.
 6. **Environment variables** - konfigurasi sepenuhnya melalui env var (file `.env` untuk lokal, system env untuk production/Docker).
 7. **Gin debug mode** - digunakan di development. Untuk production, set `GIN_MODE=release`.
+8. **Hanya komponen** `/api/matches` **yang memerlukan pagination** - jumlah pertandingan merupakan data yang berpotensi memiliki kelajuan peningkatan paling besar. Oleh karena itu, by-default, response dibatasi 500 rows (angka arbitrer)
 
 ---
 
@@ -301,7 +302,7 @@ Authorization: Bearer <token>
 
 | Method | Path | Role | Deskripsi |
 |---|---|---|---|
-| `GET` | `/api/matches` | Semua | Daftar semua pertandingan |
+| `GET` | `/api/matches` | Semua | Daftar semua pertandingan (Default pagination limit: 500 pertandingan) |
 | `GET` | `/api/matches/:match_id` | Semua | Detail pertandingan |
 | `POST` | `/api/matches` | ADMIN | Buat pertandingan baru |
 | `PUT` | `/api/matches/:match_id` | ADMIN | Update pertandingan |
